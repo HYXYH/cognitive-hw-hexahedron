@@ -55,11 +55,21 @@ class Cube:
             self.points[i][1] += direction[1]
             self.points[i][2] += direction[2]
 
+    def rotate_around_axis(self, axis, angle):
+        transform_matrix = Quaternion.from_axis_angle((axis[0], axis[1], axis[2]), angle).to_rotation_matrix(
+            (self.center[0], self.center[1], self.center[2]))
+        for i in range(8):
+            p = self.points[i]
+            spp = sp.Point3D(p[0], p[1], p[2])
+            spp = spp.transform(transform_matrix)
+            self.points[i] = [spp.x.evalf(), spp.y.evalf(), spp.z.evalf()]
+
     def get_face_weight(self, face, camera_pos):
         dist = 0
         for pid in face:
             p = self.points[pid]
-            dist += sp.sqrt((p[0] - camera_pos[0][0])**2 + (p[1] - camera_pos[1][0])**2 + (p[2] - camera_pos[2][0])**2)
+            dist += sp.sqrt(
+                (p[0] - camera_pos[0][0]) ** 2 + (p[1] - camera_pos[1][0]) ** 2 + (p[2] - camera_pos[2][0]) ** 2)
         return dist
 
     def project(self, camera):
@@ -70,11 +80,11 @@ class Cube:
 
 
 class Hexahedron(Cube):
-    max_offset = 100
-    max_angle_offset = 45/2
 
     def __init__(self, center, edge_size, seed):
         super().__init__(center, edge_size)
+        self.max_offset = self.edge_size / 4
+        self.max_angle_offset = np.pi / 8
         self.generate(seed)
 
     def generate(self, seed):
@@ -93,8 +103,10 @@ class Hexahedron(Cube):
         plane = self.face2plane(fid)
         origin = self.face_centre(fid)
         axis = plane.random_point() - plane.random_point()
-        transform_matrix = Quaternion.from_axis_angle((axis[0], axis[1], axis[2]), random.uniform(-np.pi/8, np.pi/8)).\
-            to_rotation_matrix((origin[0], origin[1], origin[2]))
+        transform_matrix = Quaternion.from_axis_angle((axis[0], axis[1], axis[2]),
+                                                      random.uniform(-self.max_angle_offset, self.max_angle_offset)
+                                                      )\
+            .to_rotation_matrix((origin[0], origin[1], origin[2]))
 
         norm = sp.Point3D(plane.normal_vector)
         plane = sp.Plane(origin, normal_vector=norm.transform(transform_matrix))
@@ -124,7 +136,6 @@ class Hexahedron(Cube):
         norm = sp.Point3D(plane.normal_vector)
         offset_vector = (sp.Point3D(self.center) - origin)
         offset_vector /= sp.Segment3D(sp.Point3D(0, 0, 0), offset_vector).length
-        self.max_offset = self.edge_size / 4
         origin += offset_vector * random.uniform(-self.max_offset, self.max_offset)
         plane = sp.Plane(origin, normal_vector=norm)
 
