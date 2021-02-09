@@ -3,6 +3,8 @@ import numpy as np
 from tqdm import tqdm
 from camera import Camera
 from figures import Cube, Hexahedron
+from copy import deepcopy
+from direction_predictor import predict_direction
 
 import PIL.ImageDraw as ImageDraw
 import PIL.Image as Image
@@ -38,14 +40,16 @@ def render(camera, figure, save_path=None):
     return np.array(image)
 
 
-def run_cube_simulation():
+def run_cube_movement():
     camera = Camera()
     camera.set_K_elements(X_size/2, Y_size/2, F)
     camera.set_R_euler_angles([0, 0, 0])
     camera.set_t(np.array([[0], [0], [0]]))
-    figure = Cube([-1500, 0, 2560], 1024)
+    figure = Cube([0, 0, 2560], 1024)
+    figure.rotate_around_axis([0, 1, 0], np.pi/4)
+    figure.rotate_around_axis([1, 0, 0], np.pi/4)
 
-    move_direction = [10, 0, 0]
+    move_direction = [0, 10, 150]
     rendered_frames = []
 
     for _ in tqdm(range(300)):
@@ -55,7 +59,7 @@ def run_cube_simulation():
     imageio.mimwrite('video.mp4', np.array(rendered_frames), fps=30)
 
 
-def run_hex_simulation():
+def run_hex_movement():
     camera = Camera()
     camera.set_K_elements(X_size / 2, Y_size / 2, F)
     camera.set_R_euler_angles([0, 0, 0])
@@ -74,7 +78,7 @@ def run_hex_simulation():
     imageio.mimwrite('video.mp4', np.array(rendered_frames), fps=30)
 
 
-def run_hex_simulation2():
+def run_hex_generation():
     camera = Camera()
     camera.set_K_elements(X_size / 2, Y_size / 2, F)
     camera.set_R_euler_angles([0, 0, 0])
@@ -119,5 +123,42 @@ def save_cube_creenshot():
     render(camera, figure, "cube.png")
 
 
+def predict_cube_direction():
+    camera = Camera()
+    camera.set_K_elements(X_size / 2, Y_size / 2, F)
+    camera.set_R_euler_angles([0, 0, 0])
+    camera.set_t(np.array([[0], [0], [0]]))
+    figure = Cube([0, 0, 2560], 1024)
+    figure.rotate_around_axis([0, 1, 0], np.pi / 4)
+    figure.rotate_around_axis([1, 0, 0], np.pi / 4)
+
+    move_dir = [50, 150, 50]
+
+    figure.project(camera)
+    coords1 = deepcopy(figure.projected_points)
+
+    figure.move(move_dir)
+    figure.project(camera)
+    coords2 = deepcopy(figure.projected_points)
+
+    predicted_dir = predict_direction(coords1, coords2, camera.K)
+    dir_norm_by_z = [move_dir[0] / move_dir[2], move_dir[1]/ move_dir[2], 1]
+    print(f"direction: {dir_norm_by_z}\npredicted: {predicted_dir}")
+
+
+def predict_cube_direction2():
+    camera = Camera()
+    camera.set_K_elements(320, 240, 320)
+    camera.set_R_euler_angles([0, 0, 0])
+    camera.set_t(np.array([[0], [0], [0]]))
+
+    coords1 = np.array([[[151], [153]], [[488], [97]]])
+    coords2 = np.array([[[439], [298]], [[523], [295]]])
+    predicted_dir = predict_direction(coords1, coords2, camera.K)
+    print(f"predicted: {predicted_dir}")
+
+
+
+
 if __name__ == '__main__':
-    save_cube_creenshot()
+    predict_cube_direction2()

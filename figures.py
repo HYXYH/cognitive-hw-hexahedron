@@ -1,7 +1,6 @@
 import numpy as np
 import sympy as sp
 from sympy.algebras.quaternion import Quaternion
-from sympy.vector import CoordSys3D
 import random
 
 
